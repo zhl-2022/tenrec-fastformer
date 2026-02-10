@@ -1,0 +1,39 @@
+# Tenrec 大规模训练配置 - QK-video (14GB)
+
+# 继承默认配置
+_base_: "default.yaml"
+
+# 数据配置
+data:
+  data_dir: "data/tenrec/Tenrec"
+  scenario: "QK-video"
+  max_users: null
+  use_cache: true
+
+# 模型配置 - 更大的模型
+model:
+  embed_dim: 128
+  hidden_dim: 256
+  num_heads: 8
+  num_layers: 4
+  history_len: 128
+
+# 训练配置 - 适配 80GB 显存
+training:
+  epochs: 10
+  batch_size: 128
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_accumulation: 2
+  max_grad_norm: 1.0
+  num_negatives: 8
+
+# 设备配置
+device:
+  type: "mlu"
+  use_amp: true
+
+# 检查点
+checkpoint:
+  save_dir: "checkpoints/qk_video"
+  save_interval: 2000

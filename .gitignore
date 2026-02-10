@@ -1,1 +1,51 @@
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (large, not for version control)
+data/
+*.csv
+*.parquet
+*.h5
+*.hdf5
+
+# Training artifacts
+logs/
+*.log
+*.ckpt
+*.pt
+*.pth
+checkpoints/
+runs/
+
+# Cache
+.cache/
+.eval_cache/
+.pytest_cache/
+
+# Misc
+*.bak
+*.tmp
+.env
