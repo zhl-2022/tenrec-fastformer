@@ -1,0 +1,17 @@
+[package]
+name = "fast_pipeline"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance recommendation pipeline components (PyO3 bindings)"
+
+[lib]
+name = "fast_pipeline"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+dashmap = "6"
+rayon = "1.10"
+ahash = "0.8"
+parking_lot = "0.12"
+log = "0.4"

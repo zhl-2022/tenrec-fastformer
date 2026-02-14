@@ -49,3 +49,11 @@ runs/
 *.bak
 *.tmp
 .env
+
+# Local-only ops notes / temporary files
+_tmp_*.py
+route_table*.txt
+scripts/fix_vpn_split.ps1
+docs/project_plan.md
+docs/连接服务器.md
+docs/Windows SSH免密登录远程服务器配置指南.md

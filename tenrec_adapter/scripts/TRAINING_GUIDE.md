@@ -1,78 +1,77 @@
 # Training Guide
 
-## Quick Start
+## 1) Baseline (Single Process)
 
 ```bash
-# 1. Setup environment
+# Setup env
 bash tenrec_adapter/scripts/setup_server.sh
 
-# 2. Train retrieval model (Two-Tower)
+# Retrieval
 bash tenrec_adapter/scripts/run_ctr1m_retrieval.sh
 
-# 3. Train ranking model (Fastformer)
+# Ranking
 bash tenrec_adapter/scripts/run_ctr1m_ranking.sh
 ```
 
-## Monitor Training
+## 2) DDP8 Workflow (Recommended on 8 MLU)
 
 ```bash
-# Attach to tmux session
-tmux attach -t <session_name>
+# P0: smoke
+PHASES=P0 bash tenrec_adapter/scripts/run_ctr1m_ddp8_p0_p3.sh
 
-# Detach without stopping: Ctrl+B then D
+# P1: min-cost matrix
+PHASES=P1 MAX_USERS=200000 MAX_STEPS_PER_EPOCH=1200 \
+bash tenrec_adapter/scripts/run_ctr1m_ddp8_p0_p3.sh
 
-# View logs
-tail -f logs/<experiment>/train.log
+# P2: full train with best params from P1
+PHASES=P2 BEST_NEG=127 BEST_LAYERS=12 BEST_LS=0.10 \
+bash tenrec_adapter/scripts/run_ctr1m_ddp8_p0_p3.sh
 
-# TensorBoard
-tensorboard --logdir=logs --host=0.0.0.0 --port=6006
-
-# List all sessions
-tmux ls
-
-# Kill a session
-tmux kill-session -t <session_name>
+# P3: optional Rust pipeline build
+PHASES=P3 ENABLE_RUST_PIPELINE=1 \
+bash tenrec_adapter/scripts/run_ctr1m_ddp8_p0_p3.sh
 ```
 
-## Custom Training
+Direct execution:
 
 ```bash
-python tenrec_adapter/run_two_stage_train.py \
-    --stage ranking \
-    --scenario ctr_data_1M \
-    --data_dir data/tenrec/Tenrec \
-    --encoder_type fastformer \
-    --ranking_num_layers 12 \
-    --num_negatives 127 \
-    --batch_size 1024 \
-    --ranking_batch_size 8192 \
-    --epochs 3 \
-    --lr 0.0008 \
-    --gradient_checkpointing
+bash tenrec_adapter/scripts/run_ctr1m_ddp8_mincost_matrix.sh
+bash tenrec_adapter/scripts/run_ctr1m_ddp8_full_train.sh 127 12 0.10
 ```
 
-## Key Parameters
+## 3) Docker + Streamlit Ops
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--stage` | `both` | `retrieval`, `ranking`, or `both` |
-| `--scenario` | `QB-video` | Dataset: `QB-video`, `QK-video`, `ctr_data_1M` |
-| `--encoder_type` | `fastformer` | `fastformer` or `transformer` |
-| `--ranking_num_layers` | 12 | Encoder depth |
-| `--num_negatives` | 127 | Negatives per positive |
-| `--batch_size` | 64 | Training batch size |
-| `--ranking_batch_size` | — | Override batch size for ranking |
-| `--gradient_checkpointing` | off | Trade compute for memory |
-| `--grad_accumulation` | 1 | Gradient accumulation steps |
-| `--eval_interval` | 5000 | Steps between evaluations |
-| `--patience` | 5 | Early stopping patience |
+```bash
+# Recreate container (8 cards + ports)
+bash tenrec_adapter/scripts/recreate_zhl_container_8mlu.sh
 
-## Evaluation Metrics
+# Start Streamlit in container
+bash tenrec_adapter/scripts/start_streamlit_in_docker.sh
 
-| Metric | Description | Leaderboard |
-|--------|-------------|-------------|
-| **AUC** | Click prediction quality | CTR |
-| **like-AUC** | Like prediction quality | Multi-Task |
-| **NDCG@20** | Top-20 ranking quality | Top-N |
-| Hit@1 | Precision at rank 1 | — |
-| MRR | Mean reciprocal rank | — |
+# Debug 8501/host mapping
+bash tenrec_adapter/scripts/debug_docker_streamlit_8501.sh
+```
+
+## 4) Data Loading Optimization
+
+```bash
+# Convert large CSV to Parquet once
+python3 tenrec_adapter/scripts/convert_tenrec_csv_to_parquet.py \
+  --data_dir data/tenrec/Tenrec \
+  --scenario ctr_data_1M \
+  --chunk_size 1000000 \
+  --compression zstd
+```
+
+## 5) Monitoring
+
+```bash
+tail -f logs/<run>/train.log
+cnmon
+```
+
+## 6) Notes
+
+- DDP launcher uses `python -m torch.distributed.run` by default.
+- If `.sh` is copied from Windows and fails on Linux with shebang errors:
+  `sed -i 's/\r$//' tenrec_adapter/scripts/*.sh`.

@@ -1,0 +1,11 @@
+* text=auto
+
+# Keep Linux scripts executable in Docker/Linux hosts
+*.sh text eol=lf
+
+# Source and docs use LF to avoid mixed line endings
+*.py text eol=lf
+*.md text eol=lf
+
+# Windows shell scripts keep CRLF for local usability
+*.ps1 text eol=crlf
